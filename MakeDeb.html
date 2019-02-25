@@ -1,0 +1,323 @@
+﻿<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>MakeDeb documentation</title>
+
+<style type="text/css">
+.comment
+{
+	color: Gray;
+}
+.keyword
+{
+	color: Darkblue;
+}
+.variable
+{
+	color: Purple;
+}
+</style>
+</head>
+
+<body>
+<h1>MakeDeb documentation</h1>
+
+<p>
+<strong>MakeDeb</strong> creates a .deb Debian binary package from local files, instructed by a text specification file. It is a console application that takes its commands from command line parameters. You need .NET Core 2.0 (Windows, Linux) or the .NET Framework 4.6.1 (Windows) to run this tool. MakeDeb is truly portable, there are no other dependencies or additional libraries required.
+</p>
+
+<h2 id="toc">Contents</h2>
+
+<ul>
+	<li><a href="#toc">Contents</a></li>
+	<li><a href="#commandline">Command line</a></li>
+	<li><a href="#specfile">Specification file</a>
+		<ul>
+			<li><a href="#directives">Directives</a>
+				<ul>
+					<li><a href="#dir_basepath">basepath</a></li>
+					<li><a href="#dir_outdir">outdir</a></li>
+					<li><a href="#dir_package">package</a></li>
+					<li><a href="#dir_version">version</a></li>
+					<li><a href="#dir_section">section</a></li>
+					<li><a href="#dir_priority">priority, prio</a></li>
+					<li><a href="#dir_architecture">architecture, arch</a></li>
+					<li><a href="#dir_depends">depends</a></li>
+					<li><a href="#dir_conflicts">conflicts</a></li>
+					<li><a href="#dir_maintainer">maintainer</a></li>
+					<li><a href="#dir_homepage">homepage</a></li>
+					<li><a href="#dir_description">description, desc</a></li>
+					<li><a href="#dir_preinst">preinst</a></li>
+					<li><a href="#dir_postinst">postinst</a></li>
+					<li><a href="#dir_prerm">prerm</a></li>
+					<li><a href="#dir_postrm">postrm</a></li>
+					<li><a href="#dir_file">file</a></li>
+					<li><a href="#dir_conffile">conffile</a></li>
+					<li><a href="#dir_directory">directory, dir</a></li>
+				</ul></li>
+			<li><a href="#variables">Variables</a></li>
+			<li><a href="#example">Example file</a></li>
+		</ul></li>
+</ul>
+
+<h2 id="commandline">Command line</h2>
+
+<p>
+MakeDeb accepts a number of command line parameters:
+</p>
+
+<ol>
+	<li>The package specification file (mandatory)</li>
+	<li>The override package version (optional)</li>
+</ol>
+
+<p>
+The specification file name can be a relative path which is interpreted relative to the current working directory. File names within the specification file will be interpreted relative to the file itself. The file format is explained below. The output file name is derived from the package name, version, and architecture. The output directory can be controlled with the <code><a href="#dir_outdir">outdir</a></code> directive.
+</p>
+
+<p>
+The specification must define a <a href="#dir_version">version</a> number for the packaged software. However, you can override this version from more current data from an automated build process. This value from the command line entirely replaces whatever is defined in the spec file.
+</p>
+
+<p>
+Example invocation:
+</p>
+
+<pre>
+make-deb %SolutionDir%\Setup\app.debspec 1.2.0.379
+</pre>
+
+<h2 id="specfile">Specification file</h2>
+
+<p>
+The specification file is a plain text file. Each line contains one directive. Empty lines are ignored. Lines starting with a hash (#) – no whitespace in front is allowed – are comments and also ignored. There are two types of lines: directives and variables. A <a href="#example">complete example file</a> is available further down.
+</p>
+
+<h3 id="directives">Directives</h3>
+
+<p>
+A directive line follows the general format: The name of the directive (case-insensitive), followed by a colon (:), followed by the value for the directive. White-space around the colon is ignored. Examples:
+</p>
+
+<pre>
+package: myapp
+version: 1.0
+depends: libxml, libz
+</pre>
+
+<p>
+The following directives are available:
+</p>
+
+<h4 id="dir_basepath">basepath</h4>
+
+<p>
+Sets the base path for all source files referenced in the spec file. This should usually point from the specification file directory up to your software solution’s root directory. If unset, the spec file’s directory is used as base path.
+</p>
+
+<h4 id="dir_outdir">outdir</h4>
+
+<p>
+Sets the output directory for the generated .deb package file. If unset, the current working directory is used.
+</p>
+
+<h4 id="dir_package">package</h4>
+
+<p>
+Sets the name of the package. This is a mandatory directive. Only the following characters are allowed for package names: lower-case letters (a-z), digits (0-9), plus (+), point (.), hyphen (-). See the <a href="https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Source">Debian Policy manual</a> for details on this field.
+</p>
+
+<h4 id="dir_version">version</h4>
+
+<p>
+Sets the version of the package. The version can be assembled of the original software version and a package version. This is a mandatory directive. Only the following characters are allowed for version numbers: upper-case letters (A-Z), lower-case letters (a-z), digits (0-9), plus (+), point (.), hyphen (-), tilde (~). See the <a href="https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Version">Debian Policy manual</a> for details on this field.
+</p>
+
+<h4 id="dir_section">section</h4>
+
+<p>
+Sets the section of the package. See the <a href="https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Section">Debian Policy manual</a> for details on this field.
+</p>
+
+<h4 id="dir_priority">priority, prio</h4>
+
+<p>
+Sets the priority of the package. See the <a href="https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Priority">Debian Policy manual</a> for details on this field.
+</p>
+
+<h4 id="dir_architecture">architecture, arch</h4>
+
+<p>
+Sets the hardware architecture of the package. The special value “all” indicates that the package can be installed on all architectures. This is a mandatory directive. See the <a href="https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Architecture">Debian Policy manual</a> for details on this field.
+</p>
+
+<h4 id="dir_depends">depends</h4>
+
+<p>
+Sets the packages that this package depends on to be installed. This directive can be used multiple times to split many dependencies over multiple lines in the spec file. See the <a href="https://www.debian.org/doc/debian-policy/ch-relationships.html#s-binarydeps">Debian Policy manual</a> for details on this field.
+</p>
+
+<h4 id="dir_conflicts">conflicts</h4>
+
+<p>
+Sets the packages that this package conflicts with. See the <a href="https://www.debian.org/doc/debian-policy/ch-relationships.html#s-binarydeps">Debian Policy manual</a> for details on this field.
+</p>
+
+<h4 id="dir_maintainer">maintainer</h4>
+
+<p>
+Sets the name and e-mail address of the maintainer of the package. This is a mandatory directive. See the <a href="https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Maintainer">Debian Policy manual</a> for details on this field.
+</p>
+
+<h4 id="dir_homepage">homepage</h4>
+
+<p>
+Sets the web site that contains additional information on the package and possibly allows downloading of the package file. See the <a href="https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Homepage">Debian Policy manual</a> for details on this field.
+</p>
+
+<h4 id="dir_description">description, desc</h4>
+
+<p>
+Sets the description of the package. This contains of multiple lines. The first line (on the same line as the directive name) contains the one-line synopsis that is displayed in package listings. The additional lines contain the multi-line description in more detail. Each of the subsequent lines must start with a single space character. Otherwise empty lines must contain a single point (.) after the leading space. This is a mandatory directive. See the <a href="https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Description">Debian Policy manual</a> for details on this field.
+</p>
+
+<h4 id="dir_preinst">preinst</h4>
+
+<p>
+Sets the name of the pre-installation script file. This file is included in the control part of the package and may be called during installation or other operations of the package. It will not be available on the target system after installation. See the <a href="https://www.debian.org/doc/debian-policy/ch-maintainerscripts.html">Debian Policy manual</a> for details on this file.
+</p>
+
+<h4 id="dir_postinst">postinst</h4>
+
+<p>
+Sets the name of the post-installation script file. This file is included in the control part of the package and may be called during installation or other operations of the package. It will not be available on the target system after installation. See the <a href="https://www.debian.org/doc/debian-policy/ch-maintainerscripts.html">Debian Policy manual</a> for details on this file.
+</p>
+
+<h4 id="dir_prerm">prerm</h4>
+
+<p>
+Sets the name of the pre-remove script file. This file is included in the control part of the package and may be called during installation or other operations of the package. It will not be available on the target system after installation. See the <a href="https://www.debian.org/doc/debian-policy/ch-maintainerscripts.html">Debian Policy manual</a> for details on this file.
+</p>
+
+<h4 id="dir_postrm">postrm</h4>
+
+<p>
+Sets the name of the post-remove script file. This file is included in the control part of the package and may be called during installation or other operations of the package. It will not be available on the target system after installation. See the <a href="https://www.debian.org/doc/debian-policy/ch-maintainerscripts.html">Debian Policy manual</a> for details on this file.
+</p>
+
+<h4 id="dir_file">file</h4>
+
+<p>
+Adds a local file to the data part of the package. This file will be unpacked to the target system when the package is installed. This directive has multiple parameters that are separated by white-space:
+</p>
+
+<ul>
+	<li>The source path: The file is read from this path.</li>
+	<li>The destination path: The file is unpacked to this path on the target system. Target paths are always relative to the root directory (/) but do not include the leading slash. If it ends with a slash (/), it is interpreted as a directory name and the file name will be appended.</li>
+	<li>The file mode: The target file is created with the specified mode, written in the usual octal notation. If unset, the default file mode is 644 (owner-write, world-read, no execute).</li>
+	<li>The file user ID: The target file is owned by the user with the specified numeric user ID. If unset, the file will be owned by the root user (ID 0).</li>
+	<li>The file group ID: The target file is owned by the group with the specified numeric group ID. If unset, the file will be owned by the root group (ID 0).</li>
+</ul>
+
+<p>
+The source path may contain wildcards (* and ?) in the file name (not in the directory). If such a wildcard occurs, a file item for each local found file is added in place of this directive. Wildcards can only be used with a destination path that only specifies the directory, not a file name. The destination file name will be used from the local file that matches the wildcard. All other parameters (mode, owner, group) are applied equally to all found files.
+</p>
+
+<h4 id="dir_conffile">conffile</h4>
+
+<p>
+Adds a local file as configuration file to the data part of the package. This behaves exactly like the <code><a href="#dir_file">file</a></code> directive. The installed file is known to the package as a configuration file so it can handle changes to this file when upgrading the package.
+</p>
+
+<h4 id="dir_directory">directory, dir</h4>
+
+<p>
+Adds an empty directory to the data part of the package. Normally you do not need to explicitly add directories for files, MakeDeb handles that for you. This directive can be used to explicitly create directories with certain modes or owners, and it must be used to create empty directories on the target system. This directive has multiple parameters that are separated by white-space:
+</p>
+
+<ul>
+	<li>The destination path: The path of the directory created on the target system. Target paths are always relative to the root directory (/) but do not include the leading slash. Directory paths do not include a trailing slash.</li>
+	<li>The directory mode: The target directory is created with the specified mode, written in the usual octal notation. If unset, the default directory mode is 755 (owner-write, world-read).</li>
+	<li>The directory user ID: The target directory is owned by the user with the specified numeric user ID. If unset, the directory will be owned by the root user (ID 0).</li>
+	<li>The directory group ID: The target directory is owned by the group with the specified numeric group ID. If unset, the directory will be owned by the root group (ID 0).</li>
+</ul>
+
+<p>
+The order in which files and directories are mentioned in the spec file does not matter. MakeDeb will first create all explicitly specified directories and then add the files (along with their implicit directories unless already created).
+</p>
+
+<p>
+Note: These parameters are similar to the <code>file</code> directive, only the first value (local source) is left out.
+</p>
+
+<h3 id="variables">Variables</h3>
+
+<p>
+Variables can be defined in the specification file to define common values only once. Variables must be defined before they are used. They can be changed anywhere in the file, affecting usage after the new assignment. A variable line follows the general format: The name of the variable (case-sensitive), followed by an equals sign (=), followed by the value for the variable. White-space around the equals sign is ignored. Examples:
+</p>
+
+<pre>
+ETCDIR = /etc/myapp
+BINDIR = /usr/local/bin
+</pre>
+
+<p>
+The usage of such variables is by putting the variable name (case-sensitive) within curly braces. Example:
+</p>
+
+<pre>
+file: MyApp\bin\Release\MyApp.exe {BINDIR}/myapp 755
+</pre>
+
+<h3 id="example">Example file</h3>
+
+<p>
+The following example assumes a Visual Studio solution directory that contains the project directories MyApp and MyLib, and an additional directory Setup that contains all setup-related files. The specification file is stored in the Setup directory.
+</p>
+
+<pre>
+<span class="comment"># Spec file options</span>
+<span class="keyword">basepath</span>: ..
+<span class="keyword">outdir</span>: bin
+
+<span class="comment"># Common directory variables</span>
+<span class="variable">ETCDIR</span> = etc/myapp
+<span class="variable">OPTDIR</span> = opt/myapp
+
+<span class="comment"># Package control file</span>
+<span class="keyword">package</span>: myapp
+<span class="keyword">version</span>: 1.2
+<span class="keyword">architecture</span>: all
+<span class="keyword">depends</span>: mono-runtime, libmono-system-runtime4.0-cil, libmono-system4.0-cil
+<span class="keyword">depends</span>: libmono-sqlite4.0-cil, libmono-system-data4.0-cil
+<span class="keyword">maintainer</span>: Example Developer &lt;developer@example.com&gt;
+<span class="keyword">homepage</span>: http://example.com/myapp
+<span class="keyword">description</span>: My application
+ My application can do truly miraculous things, read the user's mind and works
+ perfectly in every aspect.
+ .
+ If you ever wanted your computer to understand you and be helpful, then this
+ little tool is all you need.
+
+<span class="comment"># Maintenance scripts</span>
+<span class="keyword">preinst</span>:  Setup\Linux\preinst
+<span class="keyword">postinst</span>: Setup\Linux\postinst
+<span class="keyword">prerm</span>:    Setup\Linux\prerm
+<span class="keyword">postrm</span>:   Setup\Linux\postrm
+
+<span class="comment"># Startup scripts and configuration</span>
+<span class="keyword">file</span>:     Setup\Linux\myapp                    etc/init.d/   755
+<span class="keyword">conffile</span>: Setup\Config\Linux\myapp.cfg         <span class="variable">{ETCDIR}</span>/
+
+<span class="comment"># Application files</span>
+<span class="keyword">file</span>:     MyApp\bin\Release\MyApp.exe          <span class="variable">{OPTDIR}</span>/     755
+<span class="keyword">file</span>:     MyApp\bin\Release\MyApp.exe.config   <span class="variable">{OPTDIR}</span>/
+<span class="keyword">file</span>:     MyLib\bin\Release\MyLib.dll          <span class="variable">{OPTDIR}</span>/
+
+<span class="comment"># Create log directory</span>
+<span class="keyword">dir</span>:                                           var/log/myapp
+</pre>
+
+</body>
+</html>
