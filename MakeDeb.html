@@ -40,6 +40,7 @@
 					<li><a href="#dir_outdir">outdir</a></li>
 					<li><a href="#dir_package">package</a></li>
 					<li><a href="#dir_version">version</a></li>
+					<li><a href="#dir_convert-semver">convert-semver</a></li>
 					<li><a href="#dir_section">section</a></li>
 					<li><a href="#dir_priority">priority, prio</a></li>
 					<li><a href="#dir_architecture">architecture, arch</a></li>
@@ -133,6 +134,16 @@ Sets the name of the package. This is a mandatory directive. Only the following 
 <p>
 Sets the version of the package. The version can be assembled of the original software version and a package version. This is a mandatory directive. Only the following characters are allowed for version numbers: upper-case letters (A-Z), lower-case letters (a-z), digits (0-9), plus (+), point (.), hyphen (-), tilde (~). See the <a href="https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Version">Debian Policy manual</a> for details on this field.
 </p>
+
+<h4 id="dir_convert-semver">convert-semver</h4>
+
+<p>
+If set, converts the specified or overridden version from SemVer to Debian conventions. The hyphen (-) has a different meaning in both systems. In SemVer it denotes a prerelease, in Debian it has no such special meaning. The conversion is represented with the following regular expression substitution:
+</p>
+
+<pre>
+s/^([0-9]+\.[0-9]+\.[0-9]+)-([^-]+)[^.+]*(\.[0-9]+)?(\+[^-]+)?/$1~$2$3$4/
+</pre>
 
 <h4 id="dir_section">section</h4>
 

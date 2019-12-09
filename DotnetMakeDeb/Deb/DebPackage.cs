@@ -48,7 +48,7 @@ namespace DotnetMakeDeb.Deb
 			{
 				if (controlParams != null)
 				{
-					return controlParams.Package + "_" + controlParams.Version + "_" + controlParams.Architecture + ".deb";
+					return controlParams.Package + "_" + controlParams.ConvertedVersion + "_" + controlParams.Architecture + ".deb";
 				}
 				return null;
 			}
@@ -140,6 +140,13 @@ namespace DotnetMakeDeb.Deb
 						{
 							throw new FormatException("Invalid format of the Version number.");
 						}
+						inDescription = false;
+						continue;
+					}
+					m = Regex.Match(line, @"^convert-semver\s*$", RegexOptions.IgnoreCase);
+					if (m.Success)
+					{
+						controlParams.ConvertFromSemVer = true;
 						inDescription = false;
 						continue;
 					}
@@ -609,7 +616,7 @@ namespace DotnetMakeDeb.Deb
 		{
 			var stream = new MemoryStream();
 			WriteUtf8String(stream, "Package: " + controlParams.Package + "\n");
-			WriteUtf8String(stream, "Version: " + controlParams.Version + "\n");
+			WriteUtf8String(stream, "Version: " + controlParams.ConvertedVersion + "\n");
 			if (!string.IsNullOrEmpty(controlParams.Architecture))
 				WriteUtf8String(stream, "Architecture: " + controlParams.Architecture + "\n");
 			if (!string.IsNullOrEmpty(controlParams.Depends))
@@ -734,6 +741,8 @@ namespace DotnetMakeDeb.Deb
 		public string Package;
 		/// <summary>The version of the package.</summary>
 		public string Version;
+		/// <summary>Convert the specified or overridden version from SemVer to Debian conventions.</summary>
+		public bool ConvertFromSemVer;
 		/// <summary>The section of the package.</summary>
 		public string Section;
 		/// <summary>The priority of the package.</summary>
@@ -754,6 +763,22 @@ namespace DotnetMakeDeb.Deb
 		public string Homepage;
 		/// <summary>The description of the package, in the original control file multi-line syntax.</summary>
 		public string Description;
+
+		/// <summary>
+		/// Gets the version that was converted from SemVer to Debian, if configured, or the original version.
+		/// </summary>
+		public string ConvertedVersion
+		{
+			get
+			{
+				string version = Version;
+				if (ConvertFromSemVer)
+				{
+					version = Regex.Replace(version, @"^([0-9]+\.[0-9]+\.[0-9]+)-([^-]+)[^.+]*(\.[0-9]+)?(\+[^-]+)?", "$1~$2$3$4");
+				}
+				return version;
+			}
+		}
 	}
 
 	/// <summary>
