@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyProduct("Make a Debian package")]
 [assembly: AssemblyDescription("Creates a .deb Debian binary package from a specification file.")]
 [assembly: AssemblyCompany("unclassified software development")]
-[assembly: AssemblyCopyright("© {copyright:2019} Yves Goergen")]
+[assembly: AssemblyCopyright("© {copyright:2019-} Yves Goergen")]
 
 // Assembly identity version. Must be a dotted-numeric version.
 [assembly: AssemblyVersion("0.0.1")]

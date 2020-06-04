@@ -16,24 +16,23 @@ namespace DotnetMakeDeb.Deb
 	/// </summary>
 	internal class DebPackage
 	{
-		private Stream outStream;
+		private readonly List<string> createdDirs = new List<string>();
+		private readonly List<DebFileItem> fileItems = new List<DebFileItem>();
+		private readonly Dictionary<string, string> variables = new Dictionary<string, string>();
+
 		private ArWriter arWriter;
 		private Stream gzBuffer;
 		private GZipStream gzStream;
 		private TarWriter tarWriter;
-		private List<string> createdDirs = new List<string>();
-
 		private DebControlParams controlParams;
 		private string preInstFileName;
 		private string postInstFileName;
 		private string preRmFileName;
 		private string postRmFileName;
-		private List<DebFileItem> fileItems = new List<DebFileItem>();
 		private string srcBasePath;
-		private readonly Dictionary<string, string> variables = new Dictionary<string, string>();
 
 		/// <summary>
-		/// Initialises a new instance of the DebPackage class.
+		/// Initialises a new instance of the <see cref="DebPackage"/> class.
 		/// </summary>
 		public DebPackage()
 		{
@@ -48,7 +47,8 @@ namespace DotnetMakeDeb.Deb
 			{
 				if (controlParams != null)
 				{
-					return controlParams.Package + "_" + controlParams.ConvertedVersion + "_" + controlParams.Architecture + ".deb";
+					return controlParams.Package + "_" + controlParams.ConvertedVersion + "_" +
+						controlParams.Architecture + ".deb";
 				}
 				return null;
 			}
@@ -123,10 +123,10 @@ namespace DotnetMakeDeb.Deb
 					if (m.Success)
 					{
 						controlParams.Package = ResolveVariables(m.Groups[1].Value.Trim());
-						// Source: https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Source
+						// Source: https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-package
 						if (!Regex.IsMatch(controlParams.Package, "^[a-z0-9+.-]+$"))
 						{
-							throw new FormatException("Invalid format of the Package name.");
+							throw new FormatException("Invalid format of the package name.");
 						}
 						inDescription = false;
 						continue;
@@ -135,10 +135,10 @@ namespace DotnetMakeDeb.Deb
 					if (m.Success)
 					{
 						controlParams.Version = ResolveVariables(m.Groups[1].Value.Trim());
-						// Source: https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Version
+						// Source: https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-version
 						if (!Regex.IsMatch(controlParams.Version, "^[A-Za-z0-9.+~-]+$"))
 						{
-							throw new FormatException("Invalid format of the Version number.");
+							throw new FormatException("Invalid format of the version number.");
 						}
 						inDescription = false;
 						continue;
@@ -324,6 +324,9 @@ namespace DotnetMakeDeb.Deb
 						fileItem.IsConfig = true;
 						foreach (var fi in ResolveFileItems(fileItem))
 						{
+							var existingItem = fileItems.FirstOrDefault(x => x.SourcePath == fi.SourcePath);
+							if (existingItem != null)
+								fileItems.Remove(existingItem);
 							fileItems.Add(fi);
 						}
 						inDescription = false;
@@ -370,18 +373,23 @@ namespace DotnetMakeDeb.Deb
 						}
 					}
 
-					throw new Exception("Unrecognised directive in line " + lineNumber + ".");
+					throw new Exception($"Unrecognised directive in line {lineNumber}.");
 				}
 			}
 
-			if (string.IsNullOrWhiteSpace(controlParams.Package)) throw new ArgumentException("Package field missing.");
-			if (string.IsNullOrWhiteSpace(controlParams.Version)) throw new ArgumentException("Version field missing.");
-			if (string.IsNullOrWhiteSpace(controlParams.Architecture)) throw new ArgumentException("Architecture field missing.");
-			if (string.IsNullOrWhiteSpace(controlParams.Maintainer)) throw new ArgumentException("Maintainer field missing.");
-			if (string.IsNullOrWhiteSpace(controlParams.Description)) throw new ArgumentException("Description field missing.");
+			if (string.IsNullOrWhiteSpace(controlParams.Package))
+				throw new ArgumentException("Package field missing.");
+			if (string.IsNullOrWhiteSpace(controlParams.Version))
+				throw new ArgumentException("Version field missing.");
+			if (string.IsNullOrWhiteSpace(controlParams.Architecture))
+				throw new ArgumentException("Architecture field missing.");
+			if (string.IsNullOrWhiteSpace(controlParams.Maintainer))
+				throw new ArgumentException("Maintainer field missing.");
+			if (string.IsNullOrWhiteSpace(controlParams.Description))
+				throw new ArgumentException("Description field missing.");
 
 			// Calculate InstalledSize in KiB
-			// Source: https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Installed-Size
+			// Source: https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-installed-size
 			long byteCount = 0;
 			foreach (var fileItem in fileItems)
 			{
@@ -401,10 +409,10 @@ namespace DotnetMakeDeb.Deb
 		public void SetVersion(string version)
 		{
 			version = version.Trim();
-			// Source: https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-Version
+			// Source: https://www.debian.org/doc/debian-policy/ch-controlfields.html#s-f-version
 			if (!Regex.IsMatch(version, "^[A-Za-z0-9.+~-]+$"))
 			{
-				throw new FormatException("Invalid format of the Version number.");
+				throw new FormatException("Invalid format of the version number.");
 			}
 			controlParams.Version = version;
 		}
@@ -415,8 +423,6 @@ namespace DotnetMakeDeb.Deb
 		/// <param name="outStream">The stream to write the package to.</param>
 		public void WritePackage(Stream outStream)
 		{
-			this.outStream = outStream;
-
 			arWriter = new ArWriter(outStream);
 			WriteVersion();
 
@@ -615,26 +621,26 @@ namespace DotnetMakeDeb.Deb
 		private Stream CreateControlFile()
 		{
 			var stream = new MemoryStream();
-			WriteUtf8String(stream, "Package: " + controlParams.Package + "\n");
-			WriteUtf8String(stream, "Version: " + controlParams.ConvertedVersion + "\n");
+			WriteUtf8String(stream, $"Package: {controlParams.Package}\n");
+			WriteUtf8String(stream, $"Version: {controlParams.ConvertedVersion}\n");
 			if (!string.IsNullOrEmpty(controlParams.Architecture))
-				WriteUtf8String(stream, "Architecture: " + controlParams.Architecture + "\n");
+				WriteUtf8String(stream, $"Architecture: {controlParams.Architecture}\n");
 			if (!string.IsNullOrEmpty(controlParams.Depends))
-				WriteUtf8String(stream, "Depends: " + controlParams.Depends + "\n");
+				WriteUtf8String(stream, $"Depends: {controlParams.Depends}\n");
 			if (!string.IsNullOrEmpty(controlParams.PreDepends))
-				WriteUtf8String(stream, "Pre-Depends: " + controlParams.PreDepends + "\n");
+				WriteUtf8String(stream, $"Pre-Depends: {controlParams.PreDepends}\n");
 			if (controlParams.InstalledSize >= 0)
-				WriteUtf8String(stream, "Installed-Size: " + controlParams.InstalledSize + "\n");
+				WriteUtf8String(stream, $"Installed-Size: {controlParams.InstalledSize}\n");
 			if (!string.IsNullOrEmpty(controlParams.Section))
-				WriteUtf8String(stream, "Section: " + controlParams.Section + "\n");
+				WriteUtf8String(stream, $"Section: {controlParams.Section}\n");
 			if (!string.IsNullOrEmpty(controlParams.Priority))
-				WriteUtf8String(stream, "Priority: " + controlParams.Priority + "\n");
+				WriteUtf8String(stream, $"Priority: {controlParams.Priority}\n");
 			if (!string.IsNullOrEmpty(controlParams.Maintainer))
-				WriteUtf8String(stream, "Maintainer: " + controlParams.Maintainer + "\n");
+				WriteUtf8String(stream, $"Maintainer: {controlParams.Maintainer}\n");
 			if (!string.IsNullOrEmpty(controlParams.Homepage))
-				WriteUtf8String(stream, "Homepage: " + controlParams.Homepage + "\n");
+				WriteUtf8String(stream, $"Homepage: {controlParams.Homepage}\n");
 			if (!string.IsNullOrEmpty(controlParams.Description))
-				WriteUtf8String(stream, "Description: " + controlParams.Description + "\n");
+				WriteUtf8String(stream, $"Description: {controlParams.Description}\n");
 			stream.Seek(0, SeekOrigin.Begin);
 			return stream;
 		}
@@ -706,7 +712,9 @@ namespace DotnetMakeDeb.Deb
 			if (fileItem.SourcePath.Contains("?") ||
 				fileItem.SourcePath.Contains("*"))
 			{
-				foreach (string fileName in Directory.GetFiles(Path.GetDirectoryName(fileItem.SourcePath), Path.GetFileName(fileItem.SourcePath)))
+				string path = Path.GetDirectoryName(fileItem.SourcePath);
+				string searchPattern = Path.GetFileName(fileItem.SourcePath);
+				foreach (string fileName in Directory.GetFiles(path, searchPattern))
 				{
 					var fi = new DebFileItem
 					{
@@ -759,7 +767,7 @@ namespace DotnetMakeDeb.Deb
 		public long InstalledSize;
 		/// <summary>The name and e-mail address of the package maintainer in RFC 822 format.</summary>
 		public string Maintainer;
-		/// <summary>The website address of the package.</summary>
+		/// <summary>The website URL of the package.</summary>
 		public string Homepage;
 		/// <summary>The description of the package, in the original control file multi-line syntax.</summary>
 		public string Description;
