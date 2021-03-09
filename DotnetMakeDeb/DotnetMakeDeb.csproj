@@ -2,10 +2,12 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <TargetFramework>net5.0</TargetFramework>
     <AssemblyName>dotnet-make-deb</AssemblyName>
 
     <GeneratePackageOnBuild>true</GeneratePackageOnBuild>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>make-deb</ToolCommandName>
     <PackageId>Unclassified.DotnetMakeDeb</PackageId>
     <Product>dotnet-make-deb</Product>
     <Description>Creates a .deb Debian binary package from a specification file through the dotnet CLI command.</Description>

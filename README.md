@@ -8,36 +8,41 @@ Creates a .deb Debian binary package from a specification file through the dotne
 
 ## Installation
 
-### dotnet
+### dotnet local tool
 
-Install the NuGet package **Unclassified.DotnetMakeDeb** to your **.NET Core 2.0** or **.NET Standard 2.0** project in VS 2017 or later as `DotNetCliToolReference`. Then you can run it from the project directory to create your Debian package.
+Install the NuGet package **Unclassified.DotnetMakeDeb** to your project directory. Then you can run it from the project directory to create your Debian package. This requires the [.NET 5.0 runtime](https://dotnet.microsoft.com/download) to be installed.
 
-.csproj example: (be sure to use the latest version)
+Installation:
 
-    <ItemGroup>
-      <DotNetCliToolReference Include="Unclassified.DotnetMakeDeb" Version="1.0.0"/>
-    </ItemGroup>
+    dotnet new tool-manifest
+    dotnet tool install Unclassified.DotnetMakeDeb
 
-Command invocation: (only in the project directory)
+Command invocation:
 
     dotnet publish -c Release
     dotnet make-deb app.debspec
 
+### dotnet global tool
+
+Install the NuGet package **Unclassified.DotnetMakeDeb** as a global tool. Then you can run it from all directories to create your Debian package. This requires the [.NET 5.0 runtime](https://dotnet.microsoft.com/download) to be installed.
+
+Installation:
+
+    dotnet tool install -g Unclassified.DotnetMakeDeb
+
+Command invocation:
+
+    make-deb app.debspec
+
+[Learn more about managing .NET tools.](https://docs.microsoft.com/en-us/dotnet/core/tools/global-tools)
+
 ### standalone
 
-To use this tool in other environments than dotnet projects, use the separate standalone console application. It’s a single executable that depends on the .NET Framework 4.6.1 or later. You can place this program file somewhere in your %PATH% so you can quickly run it from all your projects. But you can simply save it in your project directory as well. It is invoked similarly and accepts all the same command line options:
+To use this tool in other environments than dotnet projects and without a dependency on the new .NET runtime, use the separate standalone console application. It’s a single executable that depends on the .NET Framework 4.6.1 or later. You can place this program file somewhere in your %PATH% so you can quickly run it from all your projects. But you can simply save it in your project directory as well. It is invoked similarly and accepts all the same command line options:
 
     make-deb app.debspec
 
 You will also need a package specification file which is described in the separate document [MakeDeb.html](https://htmlpreview.github.io/?https://github.com/ygoe/DotnetMakeDeb/blob/master/MakeDeb.html).
-
-## Building
-
-You can build this solution in Visual Studio or by running the command:
-
-    build.cmd
-
-Visual Studio 2017 (15.3) or later with .NET Core 2.0 support is required to build this solution.
 
 ## Package version
 
@@ -54,6 +59,16 @@ In automated build scenarios, the package version can also be looked up from ano
 ## Other options
 
 The `-v` option activates verbose output. It prints some progress information while running. Otherwise, it remains silent in normal operation.
+
+## Building
+
+You can build this solution in Visual Studio or by running the command:
+
+    build.cmd
+
+### Requirements
+
+Visual Studio 2019 or later with .NET 5.0 support is required to build this solution.
 
 ## License
 
