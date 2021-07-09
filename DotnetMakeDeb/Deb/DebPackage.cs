@@ -29,6 +29,10 @@ namespace DotnetMakeDeb.Deb
 		private string postInstFileName;
 		private string preRmFileName;
 		private string postRmFileName;
+		private bool preInstIsText;
+		private bool postInstIsText;
+		private bool preRmIsText;
+		private bool postRmIsText;
 		private string srcBasePath;
 
 		/// <summary>
@@ -222,7 +226,7 @@ namespace DotnetMakeDeb.Deb
 						continue;
 					}
 
-					m = Regex.Match(line, @"^preinst\s*:\s*(.+)$", RegexOptions.IgnoreCase);
+					m = Regex.Match(line, @"^preinst\s*:\s*(\S+)(?:\s+(text))?$", RegexOptions.IgnoreCase);
 					if (m.Success)
 					{
 						preInstFileName = ResolveVariables(m.Groups[1].Value.Trim());
@@ -231,10 +235,11 @@ namespace DotnetMakeDeb.Deb
 							// Interpret non-rooted paths relative to the base path
 							preInstFileName = Path.Combine(srcBasePath, preInstFileName);
 						}
+						preInstIsText = m.Groups[2].Value == "text";
 						inDescription = false;
 						continue;
 					}
-					m = Regex.Match(line, @"^postinst\s*:\s*(.+)$", RegexOptions.IgnoreCase);
+					m = Regex.Match(line, @"^postinst\s*:\s*(\S+)(?:\s+(text))?$", RegexOptions.IgnoreCase);
 					if (m.Success)
 					{
 						postInstFileName = ResolveVariables(m.Groups[1].Value.Trim());
@@ -243,10 +248,11 @@ namespace DotnetMakeDeb.Deb
 							// Interpret non-rooted paths relative to the base path
 							postInstFileName = Path.Combine(srcBasePath, postInstFileName);
 						}
+						postInstIsText = m.Groups[2].Value == "text";
 						inDescription = false;
 						continue;
 					}
-					m = Regex.Match(line, @"^prerm\s*:\s*(.+)$", RegexOptions.IgnoreCase);
+					m = Regex.Match(line, @"^prerm\s*:\s*(\S+)(?:\s+(text))?$", RegexOptions.IgnoreCase);
 					if (m.Success)
 					{
 						preRmFileName = ResolveVariables(m.Groups[1].Value.Trim());
@@ -255,10 +261,11 @@ namespace DotnetMakeDeb.Deb
 							// Interpret non-rooted paths relative to the base path
 							preRmFileName = Path.Combine(srcBasePath, preRmFileName);
 						}
+						preRmIsText = m.Groups[2].Value == "text";
 						inDescription = false;
 						continue;
 					}
-					m = Regex.Match(line, @"^postrm\s*:\s*(.+)$", RegexOptions.IgnoreCase);
+					m = Regex.Match(line, @"^postrm\s*:\s*(\S+)(?:\s+(text))?$", RegexOptions.IgnoreCase);
 					if (m.Success)
 					{
 						postRmFileName = ResolveVariables(m.Groups[1].Value.Trim());
@@ -267,11 +274,12 @@ namespace DotnetMakeDeb.Deb
 							// Interpret non-rooted paths relative to the base path
 							postRmFileName = Path.Combine(srcBasePath, postRmFileName);
 						}
+						postRmIsText = m.Groups[2].Value == "text";
 						inDescription = false;
 						continue;
 					}
 
-					m = Regex.Match(line, @"^file\s*:\s*(\S+)\s+(\S+)(?:\s+([0-9]+)(?:\s+([0-9]+)\s+([0-9]+))?)?\s*$", RegexOptions.IgnoreCase);
+					m = Regex.Match(line, @"^file\s*:\s*(\S+)\s+(\S+)(?:\s+(text))?(?:\s+([0-9]+)(?:\s+([0-9]+)\s+([0-9]+))?)?\s*$", RegexOptions.IgnoreCase);
 					if (m.Success)
 					{
 						// Add data file
@@ -285,12 +293,13 @@ namespace DotnetMakeDeb.Deb
 							fileItem.SourcePath = Path.Combine(srcBasePath, fileItem.SourcePath);
 						}
 						fileItem.DestPath = ResolveVariables(m.Groups[2].Value.Trim());
-						if (m.Groups[3].Length > 0)
-							fileItem.Mode = Convert.ToInt32(ResolveVariables(m.Groups[3].Value), 8);
+						fileItem.IsText = m.Groups[3].Value == "text";
 						if (m.Groups[4].Length > 0)
-							fileItem.UserId = Convert.ToInt32(ResolveVariables(m.Groups[4].Value));
+							fileItem.Mode = Convert.ToInt32(ResolveVariables(m.Groups[4].Value), 8);
 						if (m.Groups[5].Length > 0)
-							fileItem.GroupId = Convert.ToInt32(ResolveVariables(m.Groups[5].Value));
+							fileItem.UserId = Convert.ToInt32(ResolveVariables(m.Groups[5].Value));
+						if (m.Groups[6].Length > 0)
+							fileItem.GroupId = Convert.ToInt32(ResolveVariables(m.Groups[6].Value));
 						foreach (var fi in ResolveFileItems(fileItem))
 						{
 							var existingItem = fileItems.FirstOrDefault(x => x.SourcePath == fi.SourcePath);
@@ -301,7 +310,7 @@ namespace DotnetMakeDeb.Deb
 						inDescription = false;
 						continue;
 					}
-					m = Regex.Match(line, @"^conffile\s*:\s*(\S+)\s+(\S+)(?:\s+([0-9]+)(?:\s+([0-9]+)\s+([0-9]+))?)?\s*$", RegexOptions.IgnoreCase);
+					m = Regex.Match(line, @"^conffile\s*:\s*(\S+)\s+(\S+)(?:\s+(text))?(?:\s+([0-9]+)(?:\s+([0-9]+)\s+([0-9]+))?)?\s*$", RegexOptions.IgnoreCase);
 					if (m.Success)
 					{
 						// Add data file as conffile
@@ -315,12 +324,13 @@ namespace DotnetMakeDeb.Deb
 							fileItem.SourcePath = Path.Combine(srcBasePath, fileItem.SourcePath);
 						}
 						fileItem.DestPath = ResolveVariables(m.Groups[2].Value.Trim());
-						if (m.Groups[3].Length > 0)
-							fileItem.Mode = Convert.ToInt32(ResolveVariables(m.Groups[3].Value), 8);
+						fileItem.IsText = m.Groups[3].Value == "text";
 						if (m.Groups[4].Length > 0)
-							fileItem.UserId = Convert.ToInt32(ResolveVariables(m.Groups[4].Value));
+							fileItem.Mode = Convert.ToInt32(ResolveVariables(m.Groups[4].Value), 8);
 						if (m.Groups[5].Length > 0)
-							fileItem.GroupId = Convert.ToInt32(ResolveVariables(m.Groups[5].Value));
+							fileItem.UserId = Convert.ToInt32(ResolveVariables(m.Groups[5].Value));
+						if (m.Groups[6].Length > 0)
+							fileItem.GroupId = Convert.ToInt32(ResolveVariables(m.Groups[6].Value));
 						fileItem.IsConfig = true;
 						foreach (var fi in ResolveFileItems(fileItem))
 						{
@@ -397,6 +407,8 @@ namespace DotnetMakeDeb.Deb
 				{
 					var fi = new FileInfo(fileItem.SourcePath);
 					byteCount += fi.Length;
+					// NOTE: This doesn't take line ending conversions into account, but it should
+					// only reduce the target file size a little.
 				}
 			}
 			controlParams.InstalledSize = (long) Math.Ceiling((decimal) byteCount / 1024);
@@ -442,19 +454,19 @@ namespace DotnetMakeDeb.Deb
 			}
 			if (!string.IsNullOrEmpty(preInstFileName))
 			{
-				AddFile(preInstFileName, 0, 0, 493 /* 0755 */);
+				AddFile(preInstFileName, 0, 0, 493 /* 0755 */, preInstIsText);
 			}
 			if (!string.IsNullOrEmpty(postInstFileName))
 			{
-				AddFile(postInstFileName, 0, 0, 493 /* 0755 */);
+				AddFile(postInstFileName, 0, 0, 493 /* 0755 */, postInstIsText);
 			}
 			if (!string.IsNullOrEmpty(preRmFileName))
 			{
-				AddFile(preRmFileName, 0, 0, 493 /* 0755 */);
+				AddFile(preRmFileName, 0, 0, 493 /* 0755 */, preRmIsText);
 			}
 			if (!string.IsNullOrEmpty(postRmFileName))
 			{
-				AddFile(postRmFileName, 0, 0, 493 /* 0755 */);
+				AddFile(postRmFileName, 0, 0, 493 /* 0755 */, postRmIsText);
 			}
 
 			WriteControl();
@@ -469,7 +481,7 @@ namespace DotnetMakeDeb.Deb
 				}
 				else
 				{
-					AddFile(fileItem.SourcePath, fileItem.DestPath, fileItem.UserId, fileItem.GroupId, fileItem.Mode);
+					AddFile(fileItem.SourcePath, fileItem.DestPath, fileItem.UserId, fileItem.GroupId, fileItem.Mode, fileItem.IsText);
 				}
 			}
 
@@ -583,35 +595,84 @@ namespace DotnetMakeDeb.Deb
 		/// <summary>
 		/// Adds a file to the currently opened archive.
 		/// </summary>
-		private void AddFile(string fileName, int userId = 0, int groupId = 0, int mode = 33188 /* 0100644 */)
+		private void AddFile(string fileName, int userId = 0, int groupId = 0, int mode = 33188 /* 0100644 */, bool isText = false)
 		{
 			var fi = new FileInfo(fileName);
 			using (var stream = File.OpenRead(fileName))
 			{
-				tarWriter.Write(stream, fi.Length, fi.Name, userId, groupId, mode, fi.LastWriteTimeUtc);
+				if (isText)
+				{
+					using (var memStream = GetConvertedStream(stream))
+					{
+						tarWriter.Write(memStream, memStream.Length, fi.Name, userId, groupId, mode, fi.LastWriteTimeUtc);
+					}
+				}
+				else
+				{
+					tarWriter.Write(stream, fi.Length, fi.Name, userId, groupId, mode, fi.LastWriteTimeUtc);
+				}
 			}
 		}
 
 		/// <summary>
 		/// Adds a file to the currently opened archive.
 		/// </summary>
-		private void AddFile(string fileName, string destFileName, int userId = 0, int groupId = 0, int mode = 33188 /* 0100644 */)
+		private void AddFile(string fileName, string destFileName, int userId = 0, int groupId = 0, int mode = 33188 /* 0100644 */, bool isText = false)
 		{
 			EnsureDirectory(destFileName, userId, groupId);
 
 			var fi = new FileInfo(fileName);
 			using (var stream = File.OpenRead(fileName))
 			{
-				tarWriter.Write(stream, fi.Length, destFileName, userId, groupId, mode, fi.LastWriteTimeUtc);
+				if (isText)
+				{
+					using (var memStream = GetConvertedStream(stream))
+					{
+						tarWriter.Write(memStream, memStream.Length, destFileName, userId, groupId, mode, fi.LastWriteTimeUtc);
+					}
+				}
+				else
+				{
+					tarWriter.Write(stream, fi.Length, destFileName, userId, groupId, mode, fi.LastWriteTimeUtc);
+				}
 			}
 		}
 
 		/// <summary>
 		/// Adds a file to the currently opened archive.
 		/// </summary>
-		private void AddFile(Stream stream, string fileName, DateTime modifyTime, int userId = 0, int groupId = 0, int mode = 33188 /* 0100644 */)
+		private void AddFile(Stream stream, string fileName, DateTime modifyTime, int userId = 0, int groupId = 0, int mode = 33188 /* 0100644 */, bool isText = false)
 		{
-			tarWriter.Write(stream, stream.Length, fileName, userId, groupId, mode, modifyTime);
+			if (isText)
+			{
+				using (var memStream = GetConvertedStream(stream))
+				{
+					tarWriter.Write(memStream, memStream.Length, fileName, userId, groupId, mode, modifyTime);
+				}
+			}
+			else
+			{
+				tarWriter.Write(stream, stream.Length, fileName, userId, groupId, mode, modifyTime);
+			}
+		}
+
+		/// <summary>
+		/// Converts DOS to Unix line endings.
+		/// </summary>
+		/// <param name="baseStream">The source stream to read and convert.</param>
+		/// <returns>A stream that contains the converted data.</returns>
+		private Stream GetConvertedStream(Stream baseStream)
+		{
+			var memStream = new MemoryStream();
+			int b = baseStream.ReadByte();
+			while (b != -1)
+			{
+				if (b != 0x0d)
+					memStream.WriteByte((byte)b);
+				b = baseStream.ReadByte();
+			}
+			memStream.Seek(0, SeekOrigin.Begin);
+			return memStream;
 		}
 
 		/// <summary>
@@ -808,5 +869,7 @@ namespace DotnetMakeDeb.Deb
 		public bool IsConfig;
 		/// <summary>Indicates whether the file is a directory.</summary>
 		public bool IsDirectory;
+		/// <summary>Indicates whether the line endings should be converted to Unix format.</summary>
+		public bool IsText;
 	}
 }

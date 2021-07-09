@@ -6,15 +6,15 @@
 <style type="text/css">
 	.comment
 	{
-		color: Gray;
+		color: #808080;
 	}
 	.keyword
 	{
-		color: Darkblue;
+		color: #0000e0;
 	}
 	.variable
 	{
-		color: Purple;
+		color: #c000c0;
 	}
 </style>
 </head>
@@ -247,6 +247,10 @@ s/^([0-9]+\.[0-9]+\.[0-9]+)-([^-]+)[^.+]*(\.[0-9]+)?(\+[^-]+)?/$1~$2$3$4/
 	See the <a href="https://www.debian.org/doc/debian-policy/ch-maintainerscripts.html">Debian Policy Manual</a> for details on this file.
 	Non-rooted paths are interpreted relative to the <a href="#dir_basepath">base path</a>, if set before this directive.
 </p>
+<p>
+	The file name must not contain spaces.
+	To convert the file from DOS to Unix line endings, add the keyword <code>text</code> after the file name, spearated by a space.
+</p>
 
 <h4 id="dir_postinst">postinst</h4>
 <p>
@@ -255,6 +259,10 @@ s/^([0-9]+\.[0-9]+\.[0-9]+)-([^-]+)[^.+]*(\.[0-9]+)?(\+[^-]+)?/$1~$2$3$4/
 	It will not be available on the target system after installation.
 	See the <a href="https://www.debian.org/doc/debian-policy/ch-maintainerscripts.html">Debian Policy Manual</a> for details on this file.
 	Non-rooted paths are interpreted relative to the <a href="#dir_basepath">base path</a>, if set before this directive.
+</p>
+<p>
+	The file name must not contain spaces.
+	To convert the file from DOS to Unix line endings, add the keyword <code>text</code> after the file name, spearated by a space.
 </p>
 
 <h4 id="dir_prerm">prerm</h4>
@@ -265,6 +273,10 @@ s/^([0-9]+\.[0-9]+\.[0-9]+)-([^-]+)[^.+]*(\.[0-9]+)?(\+[^-]+)?/$1~$2$3$4/
 	See the <a href="https://www.debian.org/doc/debian-policy/ch-maintainerscripts.html">Debian Policy Manual</a> for details on this file.
 	Non-rooted paths are interpreted relative to the <a href="#dir_basepath">base path</a>, if set before this directive.
 </p>
+<p>
+	The file name must not contain spaces.
+	To convert the file from DOS to Unix line endings, add the keyword <code>text</code> after the file name, spearated by a space.
+</p>
 
 <h4 id="dir_postrm">postrm</h4>
 <p>
@@ -273,6 +285,10 @@ s/^([0-9]+\.[0-9]+\.[0-9]+)-([^-]+)[^.+]*(\.[0-9]+)?(\+[^-]+)?/$1~$2$3$4/
 	It will not be available on the target system after installation.
 	See the <a href="https://www.debian.org/doc/debian-policy/ch-maintainerscripts.html">Debian Policy Manual</a> for details on this file.
 	Non-rooted paths are interpreted relative to the <a href="#dir_basepath">base path</a>, if set before this directive.
+</p>
+<p>
+	The file name must not contain spaces.
+	To convert the file from DOS to Unix line endings, add the keyword <code>text</code> after the file name, spearated by a space.
 </p>
 
 <h4 id="dir_file">file</h4>
@@ -284,6 +300,7 @@ s/^([0-9]+\.[0-9]+\.[0-9]+)-([^-]+)[^.+]*(\.[0-9]+)?(\+[^-]+)?/$1~$2$3$4/
 <ul>
 	<li>The source path: The file is read from this path. Non-rooted paths are interpreted relative to the <a href="#dir_basepath">base path</a>, if set before this directive.</li>
 	<li>The destination path: The file is unpacked to this path on the target system. Target paths are always relative to the root directory (/) but do not include the leading slash. If it ends with a slash (/), it is interpreted as a directory name and the source file name will be appended to it.</li>
+	<li>Optional: <code>text</code> keyword to convert the file from DOS to Unix line endings.</li>
 	<li>The file mode: The target file is created with the specified mode, written in the usual octal notation. If unset, the default file mode is 644 (owner-write, world-read, no execute).</li>
 	<li>The file user ID: The target file is owned by the user with the specified numeric user ID. If unset, the file will be owned by the root user (ID 0).</li>
 	<li>The file group ID: The target file is owned by the group with the specified numeric group ID. If unset, the file will be owned by the root group (ID 0).</li>
@@ -385,14 +402,14 @@ file: MyApp\bin\Release\MyApp.exe {BINDIR}/myapp 755
  little tool is all you need.
 
 <span class="comment"># Maintenance scripts</span>
-<span class="keyword">preinst</span>:  Setup\Linux\preinst
-<span class="keyword">postinst</span>: Setup\Linux\postinst
-<span class="keyword">prerm</span>:    Setup\Linux\prerm
-<span class="keyword">postrm</span>:   Setup\Linux\postrm
+<span class="keyword">preinst</span>:  Setup\Linux\preinst <span class="keyword">text</span>
+<span class="keyword">postinst</span>: Setup\Linux\postinst <span class="keyword">text</span>
+<span class="keyword">prerm</span>:    Setup\Linux\prerm <span class="keyword">text</span>
+<span class="keyword">postrm</span>:   Setup\Linux\postrm <span class="keyword">text</span>
 
 <span class="comment"># Startup scripts and configuration</span>
 <span class="keyword">file</span>:     Setup\Linux\myapp                    etc/init.d/   755
-<span class="keyword">conffile</span>: Setup\Config\Linux\myapp.cfg         <span class="variable">{ETCDIR}</span>/
+<span class="keyword">conffile</span>: Setup\Config\Linux\myapp.cfg <span class="keyword">text</span>    <span class="variable">{ETCDIR}</span>/
 
 <span class="comment"># Application files</span>
 <span class="keyword">file</span>:     MyApp\bin\Release\MyApp.exe          <span class="variable">{OPTDIR}</span>/     755
