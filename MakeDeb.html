@@ -4,6 +4,15 @@
 <meta charset="utf-8">
 <title>MakeDeb documentation</title>
 <style type="text/css">
+	html
+	{
+		font-family: sans-serif;
+		line-height: 130%;
+	}
+	pre, code
+	{
+		font-size: 0.9rem;
+	}
 	.comment
 	{
 		color: #808080;
@@ -311,6 +320,11 @@ s/^([0-9]+\.[0-9]+\.[0-9]+)-([^-]+)[^.+]*(\.[0-9]+)?(\+[^-]+)?/$1~$2$3$4/
 	Wildcards can only be used with a destination path that only specifies the directory, not a file name, i.e. that ends with a slash (/).
 	The destination file name will be used from the local file that matches the wildcard.
 	All other parameters (mode, owner, group) are applied equally to all found files.
+</p>
+<p>
+	If the last path segment (the file name) of the source path is <code>**</code> then all files from the specified directory and all its subdirectories are included.
+	The destination file name includes the subdirectory path relative to the specified directory.
+	This allows the inclusion of entire subtrees of directories and files.
 </p>
 <p>
 	Source files can be specified multiple times.

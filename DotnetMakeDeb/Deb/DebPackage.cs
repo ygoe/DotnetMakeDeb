@@ -775,12 +775,19 @@ namespace DotnetMakeDeb.Deb
 			{
 				string path = Path.GetDirectoryName(fileItem.SourcePath);
 				string searchPattern = Path.GetFileName(fileItem.SourcePath);
-				foreach (string fileName in Directory.GetFiles(path, searchPattern))
+				var searchOption = SearchOption.TopDirectoryOnly;
+				if (searchPattern == "**")
 				{
+					searchPattern = "*";
+					searchOption = SearchOption.AllDirectories;
+				}
+				foreach (string fileName in Directory.GetFiles(path, searchPattern, searchOption))
+				{
+					string relFileName = fileName.Substring(path.Length + 1).Replace("\\", "/");
 					var fi = new DebFileItem
 					{
 						SourcePath = fileName,
-						DestPath = fileItem.DestPath.TrimEnd('/') + "/" + Path.GetFileName(fileName),
+						DestPath = fileItem.DestPath.TrimEnd('/') + "/" + relFileName,
 						UserId = fileItem.UserId,
 						GroupId = fileItem.GroupId,
 						Mode = fileItem.Mode,
