@@ -1,5 +1,6 @@
 ﻿using System;
 using System.IO;
+using System.Text;
 using System.Threading;
 
 namespace DotnetMakeDeb.Tar
@@ -118,6 +119,28 @@ namespace DotnetMakeDeb.Tar
 		{
 			if(isClosed)
 				throw new TarException("Can not write to the closed writer");
+
+			// handle long file names (> 99 characters)
+			// this handling method is adapted from https://github.com/qmfrederik/dotnet-packaging/pull/50/files#diff-f64c58cc18e8e445cee6ffed7a0d765cdb442c0ef21a3ed80bd20514057967b1
+			if (name.Length > 99)
+			{
+				// must include a trailing \0
+				var nameLength = Encoding.UTF8.GetByteCount(name);
+				byte[] entryName = new byte[nameLength + 1];
+				
+				Encoding.UTF8.GetBytes(name, 0, name.Length, entryName, 0);
+
+				// add a "././@LongLink" pseudo-entry which contains the full name
+				using (MemoryStream nameStream = new MemoryStream(entryName))
+				{
+					WriteHeader("././@LongLink", lastModificationTime, entryName.Length, userId, groupId, mode, EntryType.LongName);
+					WriteContent(entryName.Length, nameStream);
+					AlignTo512(entryName.Length, false);
+				}
+
+				name = name.Substring(0, 99);
+			}
+
 			WriteHeader(name, lastModificationTime, dataSizeInBytes, userId, groupId, mode, EntryType.File);
 			WriteContent(dataSizeInBytes, data);
 			AlignTo512(dataSizeInBytes,false);
