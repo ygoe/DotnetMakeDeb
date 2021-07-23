@@ -53,6 +53,21 @@ namespace DotnetMakeDeb.Tar
 			{
 				lastWriteTime = DateTime.Now;
 			}
+
+			// handle long path names (> 99 characters)
+			if (path.Length > 99)
+			{
+				WriteLongName(
+					name: path,
+					userId: userId,
+					groupId: groupId,
+					mode: mode,
+					lastModificationTime: lastWriteTime);
+
+				// shorten the path name so it can be written properly
+				path = path.Substring(0, 99);
+			}
+
 			WriteHeader(path, lastWriteTime, 0, userId, groupId, mode, EntryType.Directory);
 		}
 
@@ -121,29 +136,49 @@ namespace DotnetMakeDeb.Tar
 				throw new TarException("Can not write to the closed writer");
 
 			// handle long file names (> 99 characters)
-			// this handling method is adapted from https://github.com/qmfrederik/dotnet-packaging/pull/50/files#diff-f64c58cc18e8e445cee6ffed7a0d765cdb442c0ef21a3ed80bd20514057967b1
 			if (name.Length > 99)
 			{
-				// must include a trailing \0
-				var nameLength = Encoding.UTF8.GetByteCount(name);
-				byte[] entryName = new byte[nameLength + 1];
-				
-				Encoding.UTF8.GetBytes(name, 0, name.Length, entryName, 0);
+				WriteLongName(
+					name: name,
+					userId: userId,
+					groupId: groupId,
+					mode: mode,
+					lastModificationTime: lastModificationTime);
 
-				// add a "././@LongLink" pseudo-entry which contains the full name
-				using (MemoryStream nameStream = new MemoryStream(entryName))
-				{
-					WriteHeader("././@LongLink", lastModificationTime, entryName.Length, userId, groupId, mode, EntryType.LongName);
-					WriteContent(entryName.Length, nameStream);
-					AlignTo512(entryName.Length, false);
-				}
-
+				// shorten the file name so it can be written properly
 				name = name.Substring(0, 99);
 			}
 
 			WriteHeader(name, lastModificationTime, dataSizeInBytes, userId, groupId, mode, EntryType.File);
 			WriteContent(dataSizeInBytes, data);
 			AlignTo512(dataSizeInBytes,false);
+		}
+
+		/// <summary>
+		/// Handle long file or path names (> 99 characters).
+		/// Write header and content, which its content contain the long (complete) file/path name.
+		/// <para>This handling method is adapted from https://github.com/qmfrederik/dotnet-packaging/pull/50/files#diff-f64c58cc18e8e445cee6ffed7a0d765cdb442c0ef21a3ed80bd20514057967b1 </para>
+		/// </summary>
+		/// <param name="name">File name or path name.</param>
+		/// <param name="userId">User ID.</param>
+		/// <param name="groupId">Group ID.</param>
+		/// <param name="mode">Mode.</param>
+		/// <param name="lastModificationTime">Last modification time.</param>
+		private void WriteLongName(string name, int userId, int groupId, int mode, DateTime lastModificationTime)
+		{
+			// must include a trailing \0
+			var nameLength = Encoding.UTF8.GetByteCount(name);
+			byte[] entryName = new byte[nameLength + 1];
+
+			Encoding.UTF8.GetBytes(name, 0, name.Length, entryName, 0);
+
+			// add a "././@LongLink" pseudo-entry which contains the full name
+			using (var nameStream = new MemoryStream(entryName))
+			{
+				WriteHeader("././@LongLink", lastModificationTime, entryName.Length, userId, groupId, mode, EntryType.LongName);
+				WriteContent(entryName.Length, nameStream);
+				AlignTo512(entryName.Length, false);
+			}
 		}
 
 		protected void WriteContent(long count, Stream data)
