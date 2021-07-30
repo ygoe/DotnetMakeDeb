@@ -17,6 +17,7 @@ namespace DotnetMakeDeb.Deb
 	internal class DebPackage
 	{
 		private readonly List<string> createdDirs = new List<string>();
+		private readonly List<DebControlFileItem> controlFileItems = new List<DebControlFileItem>();
 		private readonly List<DebFileItem> fileItems = new List<DebFileItem>();
 		private readonly Dictionary<string, string> variables = new Dictionary<string, string>();
 
@@ -279,6 +280,31 @@ namespace DotnetMakeDeb.Deb
 						continue;
 					}
 
+					m = Regex.Match(line, @"^contfile\s*:\s*(\S+)\s+(\S+)(?:\s+(text))?$", RegexOptions.IgnoreCase);
+					if (m.Success)
+					{
+						// Add data file as control file
+						var fileItem = new DebControlFileItem
+						{
+							SourcePath = ResolveVariables(m.Groups[1].Value.Trim())
+						};
+						if (!Path.IsPathRooted(fileItem.SourcePath))
+						{
+							// Interpret non-rooted paths relative to the base path
+							fileItem.SourcePath = Path.Combine(srcBasePath, fileItem.SourcePath);
+						}
+						fileItem.IsText = m.Groups[2].Value == "text";
+						foreach (var fi in ResolveFileItems(fileItem))
+						{
+							var existingItem = controlFileItems.FirstOrDefault(x => x.SourcePath == fi.SourcePath);
+							if (existingItem != null)
+								controlFileItems.Remove(existingItem);
+							controlFileItems.Add(fi);
+						}
+						inDescription = false;
+						continue;
+					}
+
 					m = Regex.Match(line, @"^file\s*:\s*(\S+)\s+(\S+)(?:\s+(text))?(?:\s+([0-9]+)(?:\s+([0-9]+)\s+([0-9]+))?)?\s*$", RegexOptions.IgnoreCase);
 					if (m.Success)
 					{
@@ -467,6 +493,10 @@ namespace DotnetMakeDeb.Deb
 			if (!string.IsNullOrEmpty(postRmFileName))
 			{
 				AddFile(postRmFileName, 0, 0, 493 /* 0755 */, postRmIsText);
+			}
+			foreach (var controlFileItem in controlFileItems)
+			{
+				AddFile(controlFileItem.SourcePath, 0, 0, 493 /* 0755 */, controlFileItem.IsText);
 			}
 
 			WriteControl();
@@ -767,6 +797,38 @@ namespace DotnetMakeDeb.Deb
 			return str;
 		}
 
+		private List<DebControlFileItem> ResolveFileItems(DebControlFileItem fileItem)
+		{
+			var fileItems = new List<DebControlFileItem>();
+			if (fileItem.SourcePath.Contains("?") ||
+				fileItem.SourcePath.Contains("*"))
+			{
+				string path = Path.GetDirectoryName(fileItem.SourcePath);
+				string searchPattern = Path.GetFileName(fileItem.SourcePath);
+				var searchOption = SearchOption.TopDirectoryOnly;
+				if (searchPattern == "**")
+				{
+					searchPattern = "*";
+					searchOption = SearchOption.AllDirectories;
+				}
+				foreach (string fileName in Directory.GetFiles(path, searchPattern, searchOption))
+				{
+					string relFileName = fileName.Substring(path.Length + 1).Replace("\\", "/");
+					var fi = new DebControlFileItem
+					{
+						SourcePath = fileName,
+						IsText = fileItem.IsText
+					};
+					fileItems.Add(fi);
+				}
+			}
+			else
+			{
+				fileItems.Add(fileItem);
+			}
+			return fileItems;
+		}
+
 		private List<DebFileItem> ResolveFileItems(DebFileItem fileItem)
 		{
 			var fileItems = new List<DebFileItem>();
@@ -858,7 +920,18 @@ namespace DotnetMakeDeb.Deb
 	}
 
 	/// <summary>
-	/// Contains data about a file in a package.
+	/// Contains data about a file in a package control.tar.gz.
+	/// </summary>
+	internal class DebControlFileItem
+	{
+		/// <summary>The full path of the source file to include.</summary>
+		public string SourcePath { get; set; }
+		/// <summary>Indicates whether the line endings should be converted to Unix format.</summary>
+		public bool IsText { get; set; }
+	}
+
+	/// <summary>
+	/// Contains data about a file in a package data.tar.gz.
 	/// </summary>
 	internal class DebFileItem
 	{
