@@ -553,7 +553,7 @@ namespace DotnetMakeDeb.Deb
 		{
 			if (path.Contains("/"))
 			{
-				return Regex.Replace(path, "/[^/]+$", "");
+				return Regex.Replace(path, "/+[^/]+$", "");
 			}
 			else
 			{
