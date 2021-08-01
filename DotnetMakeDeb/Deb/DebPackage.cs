@@ -280,7 +280,7 @@ namespace DotnetMakeDeb.Deb
 						continue;
 					}
 
-					m = Regex.Match(line, @"^contfile\s*:\s*(\S+)\s+(\S+)(?:\s+(text))?$", RegexOptions.IgnoreCase);
+					m = Regex.Match(line, @"^controlfile\s*:\s*(\S+)\s+(\S+)(?:\s+(text))?$", RegexOptions.IgnoreCase);
 					if (m.Success)
 					{
 						// Add data file as control file
