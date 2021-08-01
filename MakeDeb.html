@@ -416,14 +416,14 @@ file: MyApp\bin\Release\MyApp.exe {BINDIR}/myapp 755
  little tool is all you need.
 
 <span class="comment"># Maintenance scripts</span>
-<span class="keyword">preinst</span>:  Setup\Linux\preinst <span class="keyword">text</span>
-<span class="keyword">postinst</span>: Setup\Linux\postinst <span class="keyword">text</span>
-<span class="keyword">prerm</span>:    Setup\Linux\prerm <span class="keyword">text</span>
-<span class="keyword">postrm</span>:   Setup\Linux\postrm <span class="keyword">text</span>
+<span class="keyword">preinst</span>:  Setup\Linux\preinst    <span class="keyword">text</span>
+<span class="keyword">postinst</span>: Setup\Linux\postinst   <span class="keyword">text</span>
+<span class="keyword">prerm</span>:    Setup\Linux\prerm      <span class="keyword">text</span>
+<span class="keyword">postrm</span>:   Setup\Linux\postrm     <span class="keyword">text</span>
 
 <span class="comment"># Startup scripts and configuration</span>
 <span class="keyword">file</span>:     Setup\Linux\myapp                    etc/init.d/   755
-<span class="keyword">conffile</span>: Setup\Config\Linux\myapp.cfg <span class="keyword">text</span>    <span class="variable">{ETCDIR}</span>/
+<span class="keyword">conffile</span>: Setup\Config\Linux\myapp.cfg         <span class="variable">{ETCDIR}</span>/     <span class="keyword">text</span>
 
 <span class="comment"># Application files</span>
 <span class="keyword">file</span>:     MyApp\bin\Release\MyApp.exe          <span class="variable">{OPTDIR}</span>/     755
