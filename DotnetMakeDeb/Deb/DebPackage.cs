@@ -17,7 +17,7 @@ namespace DotnetMakeDeb.Deb
 	internal class DebPackage
 	{
 		private readonly List<string> createdDirs = new List<string>();
-		private readonly List<DebControlFileItem> controlFileItems = new List<DebControlFileItem>();
+		private readonly List<DebFileItem> controlFileItems = new List<DebFileItem>();
 		private readonly List<DebFileItem> fileItems = new List<DebFileItem>();
 		private readonly Dictionary<string, string> variables = new Dictionary<string, string>();
 
@@ -280,20 +280,29 @@ namespace DotnetMakeDeb.Deb
 						continue;
 					}
 
-					m = Regex.Match(line, @"^controlfile\s*:\s*(\S+)\s+(\S+)(?:\s+(text))?$", RegexOptions.IgnoreCase);
+					m = Regex.Match(line, @"^controlfile\s*:\s*(\S+)(?:\s+(text))?(?:\s+([0-9]+)(?:\s+([0-9]+)\s+([0-9]+))?)?\s*$", RegexOptions.IgnoreCase);
 					if (m.Success)
 					{
 						// Add data file as control file
-						var fileItem = new DebControlFileItem
+						var fileItem = new DebFileItem
 						{
-							SourcePath = ResolveVariables(m.Groups[1].Value.Trim())
+							SourcePath = ResolveVariables(m.Groups[1].Value.Trim()),
+							DestPath = null,
+							IsConfig = false,
+							IsDirectory = false,
+							IsText = m.Groups[2].Value == "text"
 						};
 						if (!Path.IsPathRooted(fileItem.SourcePath))
 						{
 							// Interpret non-rooted paths relative to the base path
 							fileItem.SourcePath = Path.Combine(srcBasePath, fileItem.SourcePath);
 						}
-						fileItem.IsText = m.Groups[2].Value == "text";
+						if (m.Groups[3].Length > 0)
+							fileItem.Mode = Convert.ToInt32(ResolveVariables(m.Groups[3].Value), 8);
+						if (m.Groups[4].Length > 0)
+							fileItem.UserId = Convert.ToInt32(ResolveVariables(m.Groups[4].Value));
+						if (m.Groups[5].Length > 0)
+							fileItem.GroupId = Convert.ToInt32(ResolveVariables(m.Groups[5].Value));
 						foreach (var fi in ResolveFileItems(fileItem))
 						{
 							var existingItem = controlFileItems.FirstOrDefault(x => x.SourcePath == fi.SourcePath);
@@ -311,15 +320,17 @@ namespace DotnetMakeDeb.Deb
 						// Add data file
 						var fileItem = new DebFileItem
 						{
-							SourcePath = ResolveVariables(m.Groups[1].Value.Trim())
+							SourcePath = ResolveVariables(m.Groups[1].Value.Trim()),
+							DestPath = ResolveVariables(m.Groups[2].Value.Trim()),
+							IsConfig = false,
+							IsDirectory = false,
+							IsText = m.Groups[3].Value == "text"
 						};
 						if (!Path.IsPathRooted(fileItem.SourcePath))
 						{
 							// Interpret non-rooted paths relative to the base path
 							fileItem.SourcePath = Path.Combine(srcBasePath, fileItem.SourcePath);
 						}
-						fileItem.DestPath = ResolveVariables(m.Groups[2].Value.Trim());
-						fileItem.IsText = m.Groups[3].Value == "text";
 						if (m.Groups[4].Length > 0)
 							fileItem.Mode = Convert.ToInt32(ResolveVariables(m.Groups[4].Value), 8);
 						if (m.Groups[5].Length > 0)
@@ -342,22 +353,23 @@ namespace DotnetMakeDeb.Deb
 						// Add data file as conffile
 						var fileItem = new DebFileItem
 						{
-							SourcePath = ResolveVariables(m.Groups[1].Value.Trim())
+							SourcePath = ResolveVariables(m.Groups[1].Value.Trim()),
+							DestPath = ResolveVariables(m.Groups[2].Value.Trim()),
+							IsConfig = true,
+							IsDirectory = false,
+							IsText = m.Groups[3].Value == "text"
 						};
 						if (!Path.IsPathRooted(fileItem.SourcePath))
 						{
 							// Interpret non-rooted paths relative to the base path
 							fileItem.SourcePath = Path.Combine(srcBasePath, fileItem.SourcePath);
 						}
-						fileItem.DestPath = ResolveVariables(m.Groups[2].Value.Trim());
-						fileItem.IsText = m.Groups[3].Value == "text";
 						if (m.Groups[4].Length > 0)
 							fileItem.Mode = Convert.ToInt32(ResolveVariables(m.Groups[4].Value), 8);
 						if (m.Groups[5].Length > 0)
 							fileItem.UserId = Convert.ToInt32(ResolveVariables(m.Groups[5].Value));
 						if (m.Groups[6].Length > 0)
 							fileItem.GroupId = Convert.ToInt32(ResolveVariables(m.Groups[6].Value));
-						fileItem.IsConfig = true;
 						foreach (var fi in ResolveFileItems(fileItem))
 						{
 							var existingItem = fileItems.FirstOrDefault(x => x.SourcePath == fi.SourcePath);
@@ -374,7 +386,11 @@ namespace DotnetMakeDeb.Deb
 						// Add empty directory
 						var fileItem = new DebFileItem
 						{
-							DestPath = ResolveVariables(m.Groups[1].Value.Trim()).TrimEnd('/')
+							SourcePath = null,
+							DestPath = ResolveVariables(m.Groups[1].Value.Trim()).TrimEnd('/'),
+							IsConfig = false,
+							IsDirectory = true,
+							IsText = false
 						};
 						if (m.Groups[2].Length > 0)
 							fileItem.Mode = Convert.ToInt32(ResolveVariables(m.Groups[2].Value), 8);
@@ -384,7 +400,6 @@ namespace DotnetMakeDeb.Deb
 							fileItem.UserId = Convert.ToInt32(ResolveVariables(m.Groups[3].Value));
 						if (m.Groups[4].Length > 0)
 							fileItem.GroupId = Convert.ToInt32(ResolveVariables(m.Groups[4].Value));
-						fileItem.IsDirectory = true;
 						fileItems.Add(fileItem);
 						inDescription = false;
 						continue;
@@ -496,7 +511,7 @@ namespace DotnetMakeDeb.Deb
 			}
 			foreach (var controlFileItem in controlFileItems)
 			{
-				AddFile(controlFileItem.SourcePath, 0, 0, 493 /* 0755 */, controlFileItem.IsText);
+				AddFile(controlFileItem.SourcePath, controlFileItem.UserId, controlFileItem.GroupId, controlFileItem.Mode, controlFileItem.IsText);
 			}
 
 			WriteControl();
@@ -797,38 +812,6 @@ namespace DotnetMakeDeb.Deb
 			return str;
 		}
 
-		private List<DebControlFileItem> ResolveFileItems(DebControlFileItem fileItem)
-		{
-			var fileItems = new List<DebControlFileItem>();
-			if (fileItem.SourcePath.Contains("?") ||
-				fileItem.SourcePath.Contains("*"))
-			{
-				string path = Path.GetDirectoryName(fileItem.SourcePath);
-				string searchPattern = Path.GetFileName(fileItem.SourcePath);
-				var searchOption = SearchOption.TopDirectoryOnly;
-				if (searchPattern == "**")
-				{
-					searchPattern = "*";
-					searchOption = SearchOption.AllDirectories;
-				}
-				foreach (string fileName in Directory.GetFiles(path, searchPattern, searchOption))
-				{
-					string relFileName = fileName.Substring(path.Length + 1).Replace("\\", "/");
-					var fi = new DebControlFileItem
-					{
-						SourcePath = fileName,
-						IsText = fileItem.IsText
-					};
-					fileItems.Add(fi);
-				}
-			}
-			else
-			{
-				fileItems.Add(fileItem);
-			}
-			return fileItems;
-		}
-
 		private List<DebFileItem> ResolveFileItems(DebFileItem fileItem)
 		{
 			var fileItems = new List<DebFileItem>();
@@ -849,18 +832,20 @@ namespace DotnetMakeDeb.Deb
 					var fi = new DebFileItem
 					{
 						SourcePath = fileName,
-						DestPath = fileItem.DestPath.TrimEnd('/') + "/" + relFileName,
+						DestPath = fileItem.DestPath == null ? null : fileItem.DestPath.TrimEnd('/') + "/" + relFileName,
 						UserId = fileItem.UserId,
 						GroupId = fileItem.GroupId,
 						Mode = fileItem.Mode,
-						IsConfig = fileItem.IsConfig
+						IsConfig = fileItem.IsConfig,
+						IsDirectory = fileItem.IsDirectory,
+						IsText = fileItem.IsText
 					};
 					fileItems.Add(fi);
 				}
 			}
 			else
 			{
-				if (fileItem.DestPath.EndsWith("/"))
+				if (fileItem.DestPath?.EndsWith("/") ?? false)
 				{
 					fileItem.DestPath += Path.GetFileName(fileItem.SourcePath);
 				}
@@ -876,31 +861,31 @@ namespace DotnetMakeDeb.Deb
 	internal class DebControlParams
 	{
 		/// <summary>The name of the package.</summary>
-		public string Package;
+		public string Package { get; set; }
 		/// <summary>The version of the package.</summary>
-		public string Version;
+		public string Version { get; set; }
 		/// <summary>Convert the specified or overridden version from SemVer to Debian conventions.</summary>
-		public bool ConvertFromSemVer;
+		public bool ConvertFromSemVer { get; set; }
 		/// <summary>The section of the package.</summary>
-		public string Section;
+		public string Section { get; set; }
 		/// <summary>The priority of the package.</summary>
-		public string Priority;
+		public string Priority { get; set; }
 		/// <summary>The hardware architecture of the package.</summary>
-		public string Architecture;
+		public string Architecture { get; set; }
 		/// <summary>The package dependencies of the package.</summary>
-		public string Depends;
+		public string Depends { get; set; }
 		/// <summary>The package pre-dependencies of the package.</summary>
-		public string PreDepends;
+		public string PreDepends { get; set; }
 		/// <summary>The other packages that the package conflicts with.</summary>
-		public string Conflicts;
+		public string Conflicts { get; set; }
 		/// <summary>The total estimated size of the installed package in KiB.</summary>
-		public long InstalledSize;
+		public long InstalledSize { get; set; }
 		/// <summary>The name and e-mail address of the package maintainer in RFC 822 format.</summary>
-		public string Maintainer;
+		public string Maintainer { get; set; }
 		/// <summary>The website URL of the package.</summary>
-		public string Homepage;
+		public string Homepage { get; set; }
 		/// <summary>The description of the package, in the original control file multi-line syntax.</summary>
-		public string Description;
+		public string Description { get; set; }
 
 		/// <summary>
 		/// Gets the version that was converted from SemVer to Debian, if configured, or the original version.
@@ -920,36 +905,30 @@ namespace DotnetMakeDeb.Deb
 	}
 
 	/// <summary>
-	/// Contains data about a file in a package control.tar.gz.
-	/// </summary>
-	internal class DebControlFileItem
-	{
-		/// <summary>The full path of the source file to include.</summary>
-		public string SourcePath { get; set; }
-		/// <summary>Indicates whether the line endings should be converted to Unix format.</summary>
-		public bool IsText { get; set; }
-	}
-
-	/// <summary>
-	/// Contains data about a file in a package data.tar.gz.
+	/// Contains data about a file in a package.
 	/// </summary>
 	internal class DebFileItem
 	{
+		public DebFileItem()
+		{
+			Mode = 420 /* 0644 */;
+		}
+
 		/// <summary>The full path of the source file to include.</summary>
-		public string SourcePath;
+		public string SourcePath { get; set; }
 		/// <summary>The full path of the destination file to write, not including the root slash.</summary>
-		public string DestPath;
+		public string DestPath { get; set; }
 		/// <summary>The user ID of the file.</summary>
-		public int UserId;
+		public int UserId { get; set; }
 		/// <summary>The group ID of the file.</summary>
-		public int GroupId;
+		public int GroupId { get; set; }
 		/// <summary>The mode of the file (decimal).</summary>
-		public int Mode = 420 /* 0644 */;
+		public int Mode { get; set; }
 		/// <summary>Indicates whether the file is a configuration file.</summary>
-		public bool IsConfig;
+		public bool IsConfig { get; set; }
 		/// <summary>Indicates whether the file is a directory.</summary>
-		public bool IsDirectory;
+		public bool IsDirectory { get; set; }
 		/// <summary>Indicates whether the line endings should be converted to Unix format.</summary>
-		public bool IsText;
+		public bool IsText { get; set; }
 	}
 }
