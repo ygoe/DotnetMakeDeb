@@ -712,21 +712,23 @@ namespace DotnetMakeDeb.Deb
 		/// <returns></returns>
 		private Stream CreateMd5sumsFile()
 		{
-			var md5 = new MD5CryptoServiceProvider();
-			var stream = new MemoryStream();
-			foreach (var fileItem in fileItems)
+			using (var md5 = MD5.Create())
 			{
-				if (fileItem.SourcePath != null)
+				var stream = new MemoryStream();
+				foreach (var fileItem in fileItems)
 				{
-					byte[] fileBytes = File.ReadAllBytes(fileItem.SourcePath);
-					byte[] hashBytes = md5.ComputeHash(fileBytes);
-					string hashString = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
+					if (fileItem.SourcePath != null)
+					{
+						byte[] fileBytes = File.ReadAllBytes(fileItem.SourcePath);
+						byte[] hashBytes = md5.ComputeHash(fileBytes);
+						string hashString = BitConverter.ToString(hashBytes).Replace("-", "").ToLowerInvariant();
 
-					WriteUtf8String(stream, hashString + "  " + fileItem.DestPath + "\n");
+						WriteUtf8String(stream, hashString + "  " + fileItem.DestPath + "\n");
+					}
 				}
+				stream.Seek(0, SeekOrigin.Begin);
+				return stream;
 			}
-			stream.Seek(0, SeekOrigin.Begin);
-			return stream;
 		}
 
 		/// <summary>
