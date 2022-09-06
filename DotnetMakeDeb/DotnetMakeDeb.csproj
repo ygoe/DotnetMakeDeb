@@ -14,7 +14,9 @@
     <Authors>Yves Goergen</Authors>
     <Company>unclassified software development</Company>
     <Copyright>© {copyright:2019-} Yves Goergen</Copyright>
-	<PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/ygoe/DotnetMakeDeb.git</RepositoryUrl> 
+    <RepositoryType>git</RepositoryType> 
   </PropertyGroup>
 
   <ItemGroup>
